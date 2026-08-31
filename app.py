@@ -16,6 +16,7 @@ Run with:
 """
 
 import json
+import os
 from datetime import datetime
 from textwrap import dedent
 
@@ -24,7 +25,13 @@ import streamlit as st
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.tools.firecrawl import FirecrawlTools
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+# Load OPENAI_API_KEY / FIRECRAWL_API_KEY from a .env file in the project root,
+# if one exists. These act as defaults; anything typed into the sidebar
+# overrides them for the running session.
+load_dotenv()
 
 
 # --------------------------------------------------------------------------- #
@@ -191,12 +198,20 @@ st.caption(
 
 with st.sidebar:
     st.header("🔑 API Keys")
-    openai_api_key = st.text_input("OpenAI API Key", type="password")
-    firecrawl_api_key = st.text_input("Firecrawl API Key", type="password")
-    st.caption(
-        "Keys are used only for this session and are never stored. "
-        "Get a Firecrawl key at firecrawl.dev and an OpenAI key at platform.openai.com."
-    )
+    env_openai_key = os.getenv("OPENAI_API_KEY", "")
+    env_firecrawl_key = os.getenv("FIRECRAWL_API_KEY", "")
+
+    openai_api_key = st.text_input("OpenAI API Key", value=env_openai_key, type="password")
+    firecrawl_api_key = st.text_input("Firecrawl API Key", value=env_firecrawl_key, type="password")
+
+    if env_openai_key and env_firecrawl_key:
+        st.caption("✅ Keys auto-loaded from your .env file.")
+    else:
+        st.caption(
+            "Keys are used only for this session and are never stored. "
+            "Get a Firecrawl key at firecrawl.dev and an OpenAI key at platform.openai.com. "
+            "Tip: add them to a .env file to auto-fill this next time."
+        )
     st.divider()
     st.header("👤 Your Profile")
     conditions = st.multiselect("Medical conditions (optional)", MEDICAL_CONDITIONS, default=["None"])
