@@ -109,8 +109,8 @@ def build_agents(openai_api_key: str, firecrawl_api_key: str):
     analyzer = Agent(
         name="AQI Analyzer",
         model=model,
-        tools=[FirecrawlTools(api_key=firecrawl_api_key, scrape=True, crawl=False)],
-        response_model=AQIReport,
+        tools=[FirecrawlTools(api_key=firecrawl_api_key, enable_scrape=True, enable_crawl=False)],
+        output_schema=AQIReport,
         instructions=dedent(
             """\
             You are an air-quality data analyst.
