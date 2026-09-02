@@ -140,35 +140,47 @@ def coerce_to_report(content) -> AQIReport:
 def build_agents(openai_api_key: str, firecrawl_api_key: str):
     model = OpenAIChat(id="gpt-4o", api_key=openai_api_key)
 
-    analyzer = Agent(
-        name="AQI Analyzer",
+    # Split into two agents instead of one tool-using + schema-constrained
+    # agent: combining live tool calls with strict structured output is
+    # unreliable across agno/model versions and often falls back to prose.
+    # A scraper agent (free text) feeding a parser agent (schema-only, no
+    # tools) is far more consistent.
+    scraper = Agent(
+        name="AQI Scraper",
         model=model,
         tools=[FirecrawlTools(api_key=firecrawl_api_key, enable_scrape=True, enable_crawl=False)],
-        output_schema=AQIReport,
         instructions=dedent(
             """\
-            You are an air-quality data analyst.
-            Given a location, scrape a reliable live air-quality source
-            (prefer https://www.iqair.com/<country>/<city> or
-            https://aqicn.org/city/<city>, falling back to a web search style
-            URL guess if needed) using the firecrawl scrape tool.
+            You are an air-quality data researcher.
+            Given a location, scrape a reliable live air-quality source using
+            the firecrawl scrape tool (prefer https://www.iqair.com/<country>/
+            <city> or https://aqicn.org/city/<city>, adjusting the URL slug
+            to fit the location; try an alternate source if the first fails).
 
-            From the scraped page, extract:
-            - overall AQI value and its category
-            - PM2.5 and PM10 (µg/m³)
-            - CO level
-            - temperature (°C), humidity (%), wind speed (km/h)
-
-            If a value is not explicitly present, make the best reasonable
-            estimate from what IS on the page and note that in the summary
-            rather than inventing precise numbers. Always populate every field.
-
-            Respond with ONLY a single JSON object matching the AQIReport
-            schema - no markdown code fences, no commentary, no extra text
-            before or after the JSON.
+            Then write a short plain-text summary listing every value you
+            found on the page for: overall AQI and its category, PM2.5,
+            PM10, CO, temperature, humidity, and wind speed. Include the
+            exact source URL you scraped. If a value truly isn't on the
+            page, say so explicitly rather than guessing silently.
             """
         ),
         markdown=False,
+    )
+
+    parser = Agent(
+        name="AQI Parser",
+        model=model,
+        output_schema=AQIReport,
+        instructions=dedent(
+            """\
+            You convert a researcher's raw notes about air quality into a
+            single structured AQIReport JSON object. Use the exact values
+            given where present. Where a value is missing, make the best
+            reasonable estimate from context and mention that in the
+            summary field rather than fabricating false precision. Always
+            populate every field. Output only the structured object.
+            """
+        ),
     )
 
     recommender = Agent(
@@ -214,7 +226,7 @@ def build_agents(openai_api_key: str, firecrawl_api_key: str):
         markdown=True,
     )
 
-    return analyzer, recommender
+    return scraper, parser, recommender
 
 
 # --------------------------------------------------------------------------- #
@@ -278,11 +290,19 @@ if analyze_clicked:
         st.error("Please enter a location.")
     else:
         try:
-            analyzer, recommender = build_agents(openai_api_key, firecrawl_api_key)
+            analyzer, parser, recommender = build_agents(openai_api_key, firecrawl_api_key)
 
-            with st.spinner("📡 Fetching and analyzing live air quality data..."):
-                analysis = analyzer.run(f"Location: {location.strip()}")
-                report = coerce_to_report(analysis.content)
+            with st.spinner("📡 Fetching live air quality data..."):
+                scraped = analyzer.run(f"Location: {location.strip()}")
+
+            with st.spinner("🧮 Structuring the data..."):
+                parsed = parser.run(scraped.content)
+                try:
+                    report = coerce_to_report(parsed.content)
+                except ValueError:
+                    with st.expander("Raw scraper output (debug)"):
+                        st.code(str(scraped.content))
+                    raise
                 st.session_state.report = report
 
             with st.spinner("🩺 Generating personalized health recommendations..."):
