@@ -99,6 +99,40 @@ def aqi_color(aqi: int) -> str:
     return "#7e0023"
 
 
+def coerce_to_report(content) -> AQIReport:
+    """
+    The analyzer agent is asked for structured output, but depending on the
+    agno/model version, combining tool calls with schema-constrained output
+    can silently fall back to a plain string instead of an AQIReport
+    instance. Handle both cases here instead of crashing downstream.
+    """
+    if isinstance(content, AQIReport):
+        return content
+
+    if isinstance(content, dict):
+        return AQIReport(**content)
+
+    if isinstance(content, str):
+        text = content.strip()
+        # Strip markdown code fences if the model wrapped the JSON in them.
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text[4:]
+            text = text.strip()
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                "The AQI Analyzer didn't return valid structured data "
+                "(got plain text instead of JSON). Try again, or try a "
+                "more specific location."
+            ) from e
+        return AQIReport(**data)
+
+    raise ValueError(f"Unexpected analyzer output type: {type(content)}")
+
+
 # --------------------------------------------------------------------------- #
 # Agent builders (cached per API-key pair so we don't rebuild every rerun)
 # --------------------------------------------------------------------------- #
@@ -128,7 +162,10 @@ def build_agents(openai_api_key: str, firecrawl_api_key: str):
             If a value is not explicitly present, make the best reasonable
             estimate from what IS on the page and note that in the summary
             rather than inventing precise numbers. Always populate every field.
-            Return ONLY the structured AQIReport object.
+
+            Respond with ONLY a single JSON object matching the AQIReport
+            schema - no markdown code fences, no commentary, no extra text
+            before or after the JSON.
             """
         ),
         markdown=False,
@@ -245,7 +282,7 @@ if analyze_clicked:
 
             with st.spinner("📡 Fetching and analyzing live air quality data..."):
                 analysis = analyzer.run(f"Location: {location.strip()}")
-                report: AQIReport = analysis.content
+                report = coerce_to_report(analysis.content)
                 st.session_state.report = report
 
             with st.spinner("🩺 Generating personalized health recommendations..."):
