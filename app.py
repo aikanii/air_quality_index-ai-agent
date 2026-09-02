@@ -258,29 +258,36 @@ st.markdown(
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     h1, h2, h3, h4 { font-family: 'Manrope', sans-serif !important; }
 
-    /* ---------- Backdrop: gradient + floating blurred orbs ---------- */
+    /* ---------- Backdrop: gradient ---------- */
     .stApp {
         background: linear-gradient(135deg, #EAF0E3 0%, #DDE8D6 35%, #CFE0C6 65%, #E4EDE0 100%);
         background-attachment: fixed;
-        position: relative;
-        overflow-x: hidden;
     }
-    .stApp::before, .stApp::after {
-        content: "";
+
+    /* Decorative floating orbs, isolated in their own fixed layer so they
+       can't become a containing-block trap for other fixed/backdrop-filter
+       elements on the page. */
+    .glass-orb-layer {
         position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+    .glass-orb-layer::before, .glass-orb-layer::after {
+        content: "";
+        position: absolute;
         border-radius: 50%;
         filter: blur(70px);
-        z-index: 0;
-        pointer-events: none;
         opacity: 0.55;
     }
-    .stApp::before {
+    .glass-orb-layer::before {
         width: 420px; height: 420px;
         background: radial-gradient(circle, var(--sage-light) 0%, transparent 70%);
         top: -120px; left: -100px;
         animation: floatOrb 16s ease-in-out infinite;
     }
-    .stApp::after {
+    .glass-orb-layer::after {
         width: 500px; height: 500px;
         background: radial-gradient(circle, #A9C79A 0%, transparent 70%);
         bottom: -160px; right: -140px;
@@ -465,6 +472,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+st.markdown('<div class="glass-orb-layer"></div>', unsafe_allow_html=True)
 
 if "report" not in st.session_state:
     st.session_state.report = None
