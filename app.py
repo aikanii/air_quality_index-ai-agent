@@ -234,6 +234,140 @@ def build_agents(openai_api_key: str, firecrawl_api_key: str):
 # --------------------------------------------------------------------------- #
 st.set_page_config(page_title="AQI Analysis Agent", page_icon="🌬️", layout="wide")
 
+# --------------------------------------------------------------------------- #
+# Glassmorphism theme (sage green accent)
+# --------------------------------------------------------------------------- #
+st.markdown(
+    """
+    <style>
+    :root {
+        --sage: #8CA37F;
+        --sage-dark: #6E8560;
+        --sage-light: #B7C9AC;
+        --glass-bg: rgba(255, 255, 255, 0.30);
+        --glass-bg-strong: rgba(255, 255, 255, 0.45);
+        --glass-border: rgba(255, 255, 255, 0.45);
+    }
+
+    /* App backdrop */
+    .stApp {
+        background: linear-gradient(135deg, #EAF0E3 0%, #DDE8D6 35%, #CFE0C6 65%, #E4EDE0 100%);
+        background-attachment: fixed;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] > div {
+        background: var(--glass-bg);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-right: 1px solid var(--glass-border);
+    }
+
+    /* Headings */
+    h1, h2, h3 {
+        color: #3F4F36 !important;
+    }
+    h1 { text-shadow: 0 1px 12px rgba(140, 163, 127, 0.25); }
+
+    /* Generic glass card look for common containers */
+    div[data-testid="stMetric"],
+    div[data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stExpander"],
+    .stAlert,
+    div[data-testid="stPlotlyChart"] {
+        background: var(--glass-bg) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid var(--glass-border) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 8px 32px rgba(110, 133, 96, 0.15);
+        padding: 0.75rem;
+    }
+
+    div[data-testid="stMetric"] label {
+        color: var(--sage-dark) !important;
+        font-weight: 600;
+    }
+    div[data-testid="stMetricValue"] {
+        color: #3F4F36 !important;
+    }
+
+    /* Text / select inputs */
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="base-input"] {
+        background: var(--glass-bg-strong) !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--glass-border) !important;
+    }
+    input, textarea {
+        color: #3F4F36 !important;
+    }
+    div[data-baseweb="select"]:focus-within,
+    div[data-baseweb="base-input"]:focus-within {
+        border: 1px solid var(--sage) !important;
+        box-shadow: 0 0 0 3px rgba(140, 163, 127, 0.25) !important;
+    }
+
+    /* Multiselect tags */
+    span[data-baseweb="tag"] {
+        background-color: var(--sage) !important;
+        border-radius: 8px !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
+        color: #FFFFFF;
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        font-weight: 600;
+        padding: 0.6rem 1.2rem;
+        box-shadow: 0 6px 20px rgba(110, 133, 96, 0.35);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 26px rgba(110, 133, 96, 0.45);
+        color: #FFFFFF;
+        border-color: var(--sage-light);
+    }
+    .stButton > button:active {
+        transform: translateY(0px);
+    }
+
+    /* Download button */
+    .stDownloadButton > button {
+        background: var(--glass-bg-strong);
+        color: var(--sage-dark);
+        border: 1.5px solid var(--sage);
+        border-radius: 14px;
+        font-weight: 600;
+    }
+    .stDownloadButton > button:hover {
+        background: var(--sage);
+        color: #FFFFFF;
+    }
+
+    /* Info / caption boxes */
+    .stAlert {
+        color: #3F4F36 !important;
+    }
+
+    /* Divider */
+    hr {
+        border-color: rgba(140, 163, 127, 0.35) !important;
+    }
+
+    /* Markdown report block (recommendations) */
+    div[data-testid="stMarkdownContainer"] {
+        color: #3F4F36;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 if "report" not in st.session_state:
     st.session_state.report = None
 if "advice" not in st.session_state:
@@ -349,7 +483,13 @@ if report:
                 },
             )
         )
-        fig.update_layout(height=280, margin=dict(t=40, b=10, l=20, r=20))
+        fig.update_layout(
+            height=280,
+            margin=dict(t=40, b=10, l=20, r=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#3F4F36"),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     with top2:
@@ -365,10 +505,24 @@ if report:
 
     pm_fig = go.Figure(
         data=[
-            go.Bar(name="Level", x=["PM2.5", "PM10", "CO"], y=[report.pm2_5, report.pm10, report.co])
+            go.Bar(
+                name="Level",
+                x=["PM2.5", "PM10", "CO"],
+                y=[report.pm2_5, report.pm10, report.co],
+                marker_color="#8CA37F",
+            )
         ]
     )
-    pm_fig.update_layout(height=300, title="Pollutant Levels", margin=dict(t=40, b=10))
+    pm_fig.update_layout(
+        height=300,
+        title="Pollutant Levels",
+        margin=dict(t=40, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#3F4F36"),
+    )
+    pm_fig.update_xaxes(gridcolor="rgba(140,163,127,0.2)")
+    pm_fig.update_yaxes(gridcolor="rgba(140,163,127,0.2)")
     st.plotly_chart(pm_fig, use_container_width=True)
 
     st.caption(f"Source: {report.source_url}")
