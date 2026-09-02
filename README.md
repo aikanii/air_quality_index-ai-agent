@@ -1,4 +1,4 @@
-# 🌬️ AQI Analysis Agent
+#  AQI Analysis Agent
 
 A multi-agent air quality monitoring and health recommendation tool built with
 **Streamlit**, **Agno** (AI agent framework), **Firecrawl** (web scraping) and
