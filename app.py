@@ -99,6 +99,16 @@ def aqi_color(aqi: int) -> str:
     return "#7e0023"
 
 
+def glass_heading(emoji: str, text: str, tag: str = "h2", hero: bool = False) -> str:
+    """Render a heading with a frosted-glass circular icon badge in front of it."""
+    hero_class = " hero" if hero else ""
+    return (
+        f'<{tag} class="glass-heading{hero_class}">'
+        f'<span class="glass-icon-badge">{emoji}</span>{text}'
+        f"</{tag}>"
+    )
+
+
 def coerce_to_report(content) -> AQIReport:
     """
     The analyzer agent is asked for structured output, but depending on the
@@ -241,7 +251,7 @@ st.set_page_config(page_title="AQI Analysis Agent", page_icon="🌬️", layout=
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
     :root {
         --sage: #8CA37F;
@@ -255,8 +265,15 @@ st.markdown(
         --glass-shadow-hover: 0 14px 40px rgba(110, 133, 96, 0.26);
     }
 
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    h1, h2, h3, h4 { font-family: 'Manrope', sans-serif !important; }
+    html { font-size: 18px; }
+    html, body, [class*="css"] { font-family: 'Fraunces', 'Inter', serif; }
+    h1, h2, h3, h4, .glass-heading { font-family: 'Fraunces', serif !important; }
+    p, span, div, label, li { font-family: 'Fraunces', 'Inter', serif; }
+
+    h1 { font-size: 3.1rem !important; font-weight: 600 !important; }
+    h2 { font-size: 2.1rem !important; font-weight: 600 !important; }
+    h3 { font-size: 1.65rem !important; font-weight: 600 !important; }
+    p, .stMarkdown, label { font-size: 1.08rem !important; line-height: 1.6; }
 
     /* ---------- Backdrop: gradient ---------- */
     .stApp {
@@ -327,6 +344,39 @@ st.markdown(
         letter-spacing: -0.01em;
     }
 
+    /* ---------- Glassmorphic icon badges ---------- */
+    .glass-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin: 0.2rem 0 0.6rem 0 !important;
+    }
+    .glass-icon-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.2) 100%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 4px 16px rgba(110, 133, 96, 0.28), inset 0 1px 1px rgba(255,255,255,0.6);
+        font-size: 1.3rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-heading:hover .glass-icon-badge {
+        transform: translateY(-2px) rotate(-4deg);
+        box-shadow: 0 6px 20px rgba(110, 133, 96, 0.38), inset 0 1px 1px rgba(255,255,255,0.6);
+    }
+    .glass-heading.hero .glass-icon-badge {
+        width: 3.4rem;
+        height: 3.4rem;
+        font-size: 1.7rem;
+    }
+
     /* ---------- Glass cards: containers, metrics, expanders, alerts, charts ---------- */
     div[data-testid="stMetric"],
     div[data-testid="stVerticalBlockBorderWrapper"],
@@ -351,9 +401,15 @@ st.markdown(
         border-color: var(--sage-light) !important;
     }
 
-    div[data-testid="stMetric"] label { color: var(--sage-dark) !important; font-weight: 600; }
-    div[data-testid="stMetricValue"] { color: var(--sage-deep) !important; font-family: 'Manrope', sans-serif; }
-    div[data-testid="stMetricDelta"] svg { transform: scale(1.05); }
+    div[data-testid="stMetric"] label { color: var(--sage-dark) !important; font-weight: 600; font-size: 1.05rem !important; }
+    div[data-testid="stMetricValue"] {
+        color: var(--sage-deep) !important;
+        font-family: 'Fraunces', serif !important;
+        font-size: 2.2rem !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stMetricDelta"] { font-size: 1rem !important; }
+    div[data-testid="stMetricDelta"] svg { transform: scale(1.15); }
 
     /* ---------- Text / select inputs ---------- */
     div[data-baseweb="input"],
@@ -364,7 +420,7 @@ st.markdown(
         border: 1px solid var(--glass-border) !important;
         transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
-    input, textarea { color: var(--sage-deep) !important; }
+    input, textarea { color: var(--sage-deep) !important; font-size: 1.05rem !important; }
     div[data-baseweb="select"]:focus-within,
     div[data-baseweb="base-input"]:focus-within {
         border: 1px solid var(--sage) !important;
@@ -395,7 +451,8 @@ st.markdown(
         border: 1px solid var(--glass-border);
         border-radius: 14px;
         font-weight: 600;
-        padding: 0.6rem 1.2rem;
+        font-size: 1.08rem;
+        padding: 0.7rem 1.3rem;
         box-shadow: 0 6px 20px rgba(110, 133, 96, 0.35);
         transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
     }
@@ -414,6 +471,7 @@ st.markdown(
         border: 1.5px solid var(--sage);
         border-radius: 14px;
         font-weight: 600;
+        font-size: 1.08rem;
         transition: all 0.2s ease;
     }
     .stDownloadButton > button:hover {
@@ -428,15 +486,18 @@ st.markdown(
         backdrop-filter: blur(14px);
         border-radius: 14px;
         border: 1px solid var(--glass-border);
-        padding: 0.3rem;
+        padding: 0.4rem;
         gap: 0.3rem;
     }
     button[data-baseweb="tab"] {
         border-radius: 10px !important;
         color: var(--sage-dark) !important;
         font-weight: 600;
+        font-size: 1.1rem !important;
+        padding: 0.6rem 1.1rem !important;
         transition: background 0.2s ease, color 0.2s ease;
     }
+    button[data-baseweb="tab"] p { font-size: 1.1rem !important; }
     button[data-baseweb="tab"]:hover { background: rgba(140, 163, 127, 0.15); }
     button[data-baseweb="tab"][aria-selected="true"] {
         background: var(--sage) !important;
@@ -480,14 +541,14 @@ if "advice" not in st.session_state:
     st.session_state.advice = None
 
 with st.container(border=True):
-    st.title("🌬️ AQI Analysis Agent")
+    st.markdown(glass_heading("🌬️", "AQI Analysis Agent", "h1", hero=True), unsafe_allow_html=True)
     st.caption(
         "Real-time air quality monitoring and personalized health recommendations, "
         "powered by Firecrawl + Agno."
     )
 
 with st.sidebar:
-    st.header("🔑 API Keys")
+    st.markdown(glass_heading("🔑", "API Keys", "h3"), unsafe_allow_html=True)
     env_openai_key = os.getenv("OPENAI_API_KEY", "")
     env_firecrawl_key = os.getenv("FIRECRAWL_API_KEY", "")
 
@@ -503,12 +564,12 @@ with st.sidebar:
             "Tip: add them to a .env file to auto-fill this next time."
         )
     st.divider()
-    st.header("👤 Your Profile")
+    st.markdown(glass_heading("👤", "Your Profile", "h3"), unsafe_allow_html=True)
     conditions = st.multiselect("Medical conditions (optional)", MEDICAL_CONDITIONS, default=["None"])
     activity = st.selectbox("Planned outdoor activity", ACTIVITIES)
 
 with st.container(border=True):
-    st.subheader("📍 Location")
+    st.markdown(glass_heading("📍", "Location", "h3"), unsafe_allow_html=True)
     col_loc, col_ex = st.columns([3, 2])
     with col_loc:
         location = st.text_input(
@@ -576,7 +637,10 @@ WHO_PM10 = 45.0
 
 if report:
     st.divider()
-    st.subheader(f"📊 Current Air Quality — {report.location}")
+    st.markdown(
+        glass_heading("📊", f"Current Air Quality — {report.location}", "h2"),
+        unsafe_allow_html=True,
+    )
 
     tab_overview, tab_pollutants, tab_advice = st.tabs(
         ["🌡️ Overview", "🧪 Pollutants", "🩺 Health Advice"]
