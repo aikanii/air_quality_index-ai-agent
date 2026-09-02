@@ -235,87 +235,153 @@ def build_agents(openai_api_key: str, firecrawl_api_key: str):
 st.set_page_config(page_title="AQI Analysis Agent", page_icon="🌬️", layout="wide")
 
 # --------------------------------------------------------------------------- #
-# Glassmorphism theme (sage green accent)
+# Glassmorphism theme (sage green accent) — fonts, backdrop, glass cards,
+# animation, and interactive hover/focus states
 # --------------------------------------------------------------------------- #
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&display=swap');
+
     :root {
         --sage: #8CA37F;
         --sage-dark: #6E8560;
         --sage-light: #B7C9AC;
-        --glass-bg: rgba(255, 255, 255, 0.30);
-        --glass-bg-strong: rgba(255, 255, 255, 0.45);
-        --glass-border: rgba(255, 255, 255, 0.45);
+        --sage-deep: #3F4F36;
+        --glass-bg: rgba(255, 255, 255, 0.28);
+        --glass-bg-strong: rgba(255, 255, 255, 0.48);
+        --glass-border: rgba(255, 255, 255, 0.5);
+        --glass-shadow: 0 8px 32px rgba(110, 133, 96, 0.16);
+        --glass-shadow-hover: 0 14px 40px rgba(110, 133, 96, 0.26);
     }
 
-    /* App backdrop */
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4 { font-family: 'Manrope', sans-serif !important; }
+
+    /* ---------- Backdrop: gradient + floating blurred orbs ---------- */
     .stApp {
         background: linear-gradient(135deg, #EAF0E3 0%, #DDE8D6 35%, #CFE0C6 65%, #E4EDE0 100%);
         background-attachment: fixed;
+        position: relative;
+        overflow-x: hidden;
+    }
+    .stApp::before, .stApp::after {
+        content: "";
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(70px);
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.55;
+    }
+    .stApp::before {
+        width: 420px; height: 420px;
+        background: radial-gradient(circle, var(--sage-light) 0%, transparent 70%);
+        top: -120px; left: -100px;
+        animation: floatOrb 16s ease-in-out infinite;
+    }
+    .stApp::after {
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, #A9C79A 0%, transparent 70%);
+        bottom: -160px; right: -140px;
+        animation: floatOrb 20s ease-in-out infinite reverse;
+    }
+    @keyframes floatOrb {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(30px, -30px) scale(1.08); }
     }
 
-    /* Sidebar */
+    /* Page-load entrance (one orchestrated moment, not per-card) */
+    section.main > div.block-container {
+        animation: fadeInUp 0.6s ease-out;
+        position: relative;
+        z-index: 1;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Sidebar ---------- */
     section[data-testid="stSidebar"] > div {
         background: var(--glass-bg);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border-right: 1px solid var(--glass-border);
     }
 
-    /* Headings */
-    h1, h2, h3 {
-        color: #3F4F36 !important;
+    /* ---------- Headings ---------- */
+    h1, h2, h3 { color: var(--sage-deep) !important; }
+    h1 {
+        background: linear-gradient(90deg, var(--sage-deep) 0%, var(--sage-dark) 55%, var(--sage) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.01em;
     }
-    h1 { text-shadow: 0 1px 12px rgba(140, 163, 127, 0.25); }
 
-    /* Generic glass card look for common containers */
+    /* ---------- Glass cards: containers, metrics, expanders, alerts, charts ---------- */
     div[data-testid="stMetric"],
     div[data-testid="stVerticalBlockBorderWrapper"],
     div[data-testid="stExpander"],
     .stAlert,
     div[data-testid="stPlotlyChart"] {
         background: var(--glass-bg) !important;
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         border: 1px solid var(--glass-border) !important;
         border-radius: 18px !important;
-        box-shadow: 0 8px 32px rgba(110, 133, 96, 0.15);
-        padding: 0.75rem;
+        box-shadow: var(--glass-shadow);
+        padding: 0.9rem;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
 
-    div[data-testid="stMetric"] label {
-        color: var(--sage-dark) !important;
-        font-weight: 600;
-    }
-    div[data-testid="stMetricValue"] {
-        color: #3F4F36 !important;
+    /* Interactive lift on hover for card-like containers */
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover,
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--glass-shadow-hover);
+        border-color: var(--sage-light) !important;
     }
 
-    /* Text / select inputs */
+    div[data-testid="stMetric"] label { color: var(--sage-dark) !important; font-weight: 600; }
+    div[data-testid="stMetricValue"] { color: var(--sage-deep) !important; font-family: 'Manrope', sans-serif; }
+    div[data-testid="stMetricDelta"] svg { transform: scale(1.05); }
+
+    /* ---------- Text / select inputs ---------- */
     div[data-baseweb="input"],
     div[data-baseweb="select"] > div,
     div[data-baseweb="base-input"] {
         background: var(--glass-bg-strong) !important;
         border-radius: 12px !important;
         border: 1px solid var(--glass-border) !important;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
-    input, textarea {
-        color: #3F4F36 !important;
-    }
+    input, textarea { color: var(--sage-deep) !important; }
     div[data-baseweb="select"]:focus-within,
     div[data-baseweb="base-input"]:focus-within {
         border: 1px solid var(--sage) !important;
         box-shadow: 0 0 0 3px rgba(140, 163, 127, 0.25) !important;
     }
 
-    /* Multiselect tags */
+    /* Dropdown / multiselect popover menus */
+    ul[data-baseweb="menu"] {
+        background: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(12px);
+        border-radius: 12px !important;
+        border: 1px solid var(--glass-border) !important;
+    }
+    li[data-baseweb="menu-item"]:hover,
+    li[aria-selected="true"] {
+        background: rgba(140, 163, 127, 0.18) !important;
+        color: var(--sage-deep) !important;
+    }
     span[data-baseweb="tag"] {
         background-color: var(--sage) !important;
         border-radius: 8px !important;
     }
 
-    /* Buttons */
+    /* ---------- Buttons ---------- */
     .stButton > button {
         background: linear-gradient(135deg, var(--sage) 0%, var(--sage-dark) 100%);
         color: #FFFFFF;
@@ -324,45 +390,77 @@ st.markdown(
         font-weight: 600;
         padding: 0.6rem 1.2rem;
         box-shadow: 0 6px 20px rgba(110, 133, 96, 0.35);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
     }
     .stButton > button:hover {
-        transform: translateY(-2px);
+        transform: translateY(-2px) scale(1.01);
         box-shadow: 0 10px 26px rgba(110, 133, 96, 0.45);
         color: #FFFFFF;
         border-color: var(--sage-light);
+        filter: brightness(1.05);
     }
-    .stButton > button:active {
-        transform: translateY(0px);
-    }
+    .stButton > button:active { transform: translateY(0px) scale(0.99); }
 
-    /* Download button */
     .stDownloadButton > button {
         background: var(--glass-bg-strong);
         color: var(--sage-dark);
         border: 1.5px solid var(--sage);
         border-radius: 14px;
         font-weight: 600;
+        transition: all 0.2s ease;
     }
     .stDownloadButton > button:hover {
         background: var(--sage);
         color: #FFFFFF;
+        transform: translateY(-2px);
     }
 
-    /* Info / caption boxes */
-    .stAlert {
-        color: #3F4F36 !important;
+    /* ---------- Tabs ---------- */
+    div[data-baseweb="tab-list"] {
+        background: var(--glass-bg);
+        backdrop-filter: blur(14px);
+        border-radius: 14px;
+        border: 1px solid var(--glass-border);
+        padding: 0.3rem;
+        gap: 0.3rem;
     }
+    button[data-baseweb="tab"] {
+        border-radius: 10px !important;
+        color: var(--sage-dark) !important;
+        font-weight: 600;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+    button[data-baseweb="tab"]:hover { background: rgba(140, 163, 127, 0.15); }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background: var(--sage) !important;
+        color: #FFFFFF !important;
+    }
+    div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] { display: none; }
 
-    /* Divider */
-    hr {
-        border-color: rgba(140, 163, 127, 0.35) !important;
-    }
+    /* ---------- Spinner ---------- */
+    div[data-testid="stSpinner"] > div { border-top-color: var(--sage) !important; }
+    div[data-testid="stSpinner"] p { color: var(--sage-dark); }
 
-    /* Markdown report block (recommendations) */
-    div[data-testid="stMarkdownContainer"] {
-        color: #3F4F36;
+    /* ---------- Alerts / captions ---------- */
+    .stAlert { color: var(--sage-deep) !important; }
+    div[data-testid="stCaptionContainer"] { color: var(--sage-dark) !important; }
+
+    /* ---------- Divider ---------- */
+    hr { border-color: rgba(140, 163, 127, 0.35) !important; }
+
+    /* ---------- Markdown report block ---------- */
+    div[data-testid="stMarkdownContainer"] { color: var(--sage-deep); }
+
+    /* ---------- Scrollbar ---------- */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+        background: var(--sage-light);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
     }
+    ::-webkit-scrollbar-thumb:hover { background: var(--sage); background-clip: content-box; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -373,11 +471,12 @@ if "report" not in st.session_state:
 if "advice" not in st.session_state:
     st.session_state.advice = None
 
-st.title("🌬️ AQI Analysis Agent")
-st.caption(
-    "Real-time air quality monitoring and personalized health recommendations, "
-    "powered by Firecrawl + Agno."
-)
+with st.container(border=True):
+    st.title("🌬️ AQI Analysis Agent")
+    st.caption(
+        "Real-time air quality monitoring and personalized health recommendations, "
+        "powered by Firecrawl + Agno."
+    )
 
 with st.sidebar:
     st.header("🔑 API Keys")
@@ -400,22 +499,23 @@ with st.sidebar:
     conditions = st.multiselect("Medical conditions (optional)", MEDICAL_CONDITIONS, default=["None"])
     activity = st.selectbox("Planned outdoor activity", ACTIVITIES)
 
-st.subheader("📍 Location")
-col_loc, col_ex = st.columns([3, 2])
-with col_loc:
-    location = st.text_input(
-        "City / location", value=st.session_state.get("location_prefill", ""),
-        placeholder="e.g. Delhi, India"
-    )
-with col_ex:
-    st.caption("Try an example:")
-    ex_cols = st.columns(len(EXAMPLE_QUERIES))
-    for i, ex in enumerate(EXAMPLE_QUERIES):
-        if ex_cols[i].button(ex, use_container_width=True):
-            st.session_state.location_prefill = ex
-            st.rerun()
+with st.container(border=True):
+    st.subheader("📍 Location")
+    col_loc, col_ex = st.columns([3, 2])
+    with col_loc:
+        location = st.text_input(
+            "City / location", value=st.session_state.get("location_prefill", ""),
+            placeholder="e.g. Delhi, India"
+        )
+    with col_ex:
+        st.caption("Try an example:")
+        ex_cols = st.columns(len(EXAMPLE_QUERIES))
+        for i, ex in enumerate(EXAMPLE_QUERIES):
+            if ex_cols[i].button(ex, use_container_width=True):
+                st.session_state.location_prefill = ex
+                st.rerun()
 
-analyze_clicked = st.button("🔍 Analyze Air Quality", type="primary", use_container_width=True)
+    analyze_clicked = st.button("🔍 Analyze Air Quality", type="primary", use_container_width=True)
 
 if analyze_clicked:
     if not openai_api_key or not firecrawl_api_key:
@@ -462,105 +562,128 @@ if analyze_clicked:
 report = st.session_state.report
 advice = st.session_state.advice
 
+# WHO 24-hour air-quality guideline levels, used to add context to raw readings.
+WHO_PM2_5 = 15.0
+WHO_PM10 = 45.0
+
 if report:
     st.divider()
     st.subheader(f"📊 Current Air Quality — {report.location}")
 
-    top1, top2 = st.columns([1, 2])
-    with top1:
-        fig = go.Figure(
-            go.Indicator(
-                mode="gauge+number",
-                value=report.aqi,
-                title={"text": f"AQI — {report.aqi_category}"},
-                gauge={
-                    "axis": {"range": [0, 500]},
-                    "bar": {"color": aqi_color(report.aqi)},
-                    "steps": [
-                        {"range": [lo, hi], "color": color}
-                        for lo, hi, color, _ in AQI_COLOR_SCALE
-                    ],
-                },
+    tab_overview, tab_pollutants, tab_advice = st.tabs(
+        ["🌡️ Overview", "🧪 Pollutants", "🩺 Health Advice"]
+    )
+
+    with tab_overview:
+        with st.container(border=True):
+            top1, top2 = st.columns([1, 2])
+            with top1:
+                fig = go.Figure(
+                    go.Indicator(
+                        mode="gauge+number",
+                        value=report.aqi,
+                        title={"text": f"AQI — {report.aqi_category}"},
+                        gauge={
+                            "axis": {"range": [0, 500]},
+                            "bar": {"color": aqi_color(report.aqi)},
+                            "steps": [
+                                {"range": [lo, hi], "color": color}
+                                for lo, hi, color, _ in AQI_COLOR_SCALE
+                            ],
+                        },
+                    )
+                )
+                fig.update_layout(
+                    height=280,
+                    margin=dict(t=40, b=10, l=20, r=20),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#3F4F36"),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            with top2:
+                m4, m5, m6 = st.columns(3)
+                m4.metric("Temperature", f"{report.temperature_c} °C")
+                m5.metric("Humidity", f"{report.humidity_pct}%")
+                m6.metric("Wind Speed", f"{report.wind_speed_kmh} km/h")
+                st.info(report.summary)
+                st.caption(f"Source: {report.source_url}")
+
+    with tab_pollutants:
+        with st.container(border=True):
+            p1, p2, p3 = st.columns(3)
+            p1.metric(
+                "PM2.5", f"{report.pm2_5} µg/m³",
+                delta=f"{report.pm2_5 - WHO_PM2_5:+.1f} vs WHO guideline",
+                delta_color="inverse",
             )
-        )
-        fig.update_layout(
-            height=280,
-            margin=dict(t=40, b=10, l=20, r=20),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#3F4F36"),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with top2:
-        m1, m2, m3 = st.columns(3)
-        m1.metric("PM2.5", f"{report.pm2_5} µg/m³")
-        m2.metric("PM10", f"{report.pm10} µg/m³")
-        m3.metric("CO", f"{report.co}")
-        m4, m5, m6 = st.columns(3)
-        m4.metric("Temperature", f"{report.temperature_c} °C")
-        m5.metric("Humidity", f"{report.humidity_pct}%")
-        m6.metric("Wind Speed", f"{report.wind_speed_kmh} km/h")
-        st.info(report.summary)
-
-    pm_fig = go.Figure(
-        data=[
-            go.Bar(
-                name="Level",
-                x=["PM2.5", "PM10", "CO"],
-                y=[report.pm2_5, report.pm10, report.co],
-                marker_color="#8CA37F",
+            p2.metric(
+                "PM10", f"{report.pm10} µg/m³",
+                delta=f"{report.pm10 - WHO_PM10:+.1f} vs WHO guideline",
+                delta_color="inverse",
             )
-        ]
-    )
-    pm_fig.update_layout(
-        height=300,
-        title="Pollutant Levels",
-        margin=dict(t=40, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#3F4F36"),
-    )
-    pm_fig.update_xaxes(gridcolor="rgba(140,163,127,0.2)")
-    pm_fig.update_yaxes(gridcolor="rgba(140,163,127,0.2)")
-    st.plotly_chart(pm_fig, use_container_width=True)
+            p3.metric("CO", f"{report.co}")
 
-    st.caption(f"Source: {report.source_url}")
+            pm_fig = go.Figure(
+                data=[
+                    go.Bar(
+                        name="Level",
+                        x=["PM2.5", "PM10", "CO"],
+                        y=[report.pm2_5, report.pm10, report.co],
+                        marker_color="#8CA37F",
+                    )
+                ]
+            )
+            pm_fig.update_layout(
+                height=300,
+                title="Pollutant Levels",
+                margin=dict(t=40, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#3F4F36"),
+            )
+            pm_fig.update_xaxes(gridcolor="rgba(140,163,127,0.2)")
+            pm_fig.update_yaxes(gridcolor="rgba(140,163,127,0.2)")
+            st.plotly_chart(pm_fig, use_container_width=True)
+            st.caption("Deltas compare today's reading to WHO 24-hour air-quality guideline levels.")
 
-if advice:
-    st.divider()
-    st.subheader("🩺 Personalized Health Recommendations")
-    st.markdown(advice)
+    with tab_advice:
+        with st.container(border=True):
+            if advice:
+                st.markdown(advice)
 
-    report_text = dedent(
-        f"""\
-        AQI ANALYSIS REPORT
-        Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
-        Location: {report.location}
-        Medical conditions considered: {", ".join(conditions) if conditions else "None"}
-        Planned activity: {activity}
+                report_text = dedent(
+                    f"""\
+                    AQI ANALYSIS REPORT
+                    Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                    Location: {report.location}
+                    Medical conditions considered: {", ".join(conditions) if conditions else "None"}
+                    Planned activity: {activity}
 
-        --- AIR QUALITY DATA ---
-        AQI: {report.aqi} ({report.aqi_category})
-        PM2.5: {report.pm2_5} µg/m³
-        PM10: {report.pm10} µg/m³
-        CO: {report.co}
-        Temperature: {report.temperature_c} °C
-        Humidity: {report.humidity_pct}%
-        Wind Speed: {report.wind_speed_kmh} km/h
-        Source: {report.source_url}
+                    --- AIR QUALITY DATA ---
+                    AQI: {report.aqi} ({report.aqi_category})
+                    PM2.5: {report.pm2_5} µg/m³
+                    PM10: {report.pm10} µg/m³
+                    CO: {report.co}
+                    Temperature: {report.temperature_c} °C
+                    Humidity: {report.humidity_pct}%
+                    Wind Speed: {report.wind_speed_kmh} km/h
+                    Source: {report.source_url}
 
-        --- HEALTH RECOMMENDATIONS ---
-        {advice}
-        """
-    )
-    st.download_button(
-        "⬇️ Download Full Report",
-        data=report_text,
-        file_name=f"aqi_report_{report.location.replace(', ', '_').replace(' ', '_')}.md",
-        mime="text/markdown",
-        use_container_width=True,
-    )
+                    --- HEALTH RECOMMENDATIONS ---
+                    {advice}
+                    """
+                )
+                st.download_button(
+                    "⬇️ Download Full Report",
+                    data=report_text,
+                    file_name=f"aqi_report_{report.location.replace(', ', '_').replace(' ', '_')}.md",
+                    mime="text/markdown",
+                    use_container_width=True,
+                )
+            else:
+                st.info("Recommendations weren't generated for this run.")
 
 if not report:
     st.info("Enter a location above and click **Analyze Air Quality** to get started.")
